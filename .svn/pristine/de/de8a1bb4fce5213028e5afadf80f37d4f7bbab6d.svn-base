@@ -1,0 +1,36 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using SharpDX.Direct3D;
+using Eclipse2D.Graphics;
+
+namespace Eclipse2D
+{
+    /// <summary>
+    /// Represents the graphics device manager which controls the graphics device.
+    /// </summary>
+    public class GraphicsDeviceManager
+    {
+        /// <summary>
+        /// Represents the graphics device attached to this graphics device manager.
+        /// </summary>
+        private GraphicsDevice m_GraphicsDevice;
+
+        /// <summary>
+        /// Represents the game attached to this graphics device manager.
+        /// </summary>
+        private Game m_Game;
+
+        /// <summary>
+        /// Initializes a new graphics device manager with the specified game.
+        /// </summary>
+        /// <param name="Game"></param>
+        public GraphicsDeviceManager(Game Game)
+        {
+
+        }
+    }
+
+}

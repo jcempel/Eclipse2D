@@ -1,0 +1,238 @@
+﻿using System;
+using System.Windows.Forms;
+using System.Diagnostics;
+using System.Drawing;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using SharpDX.Windows;
+using Eclipse2D.Input;
+using Eclipse2D.Graphics;
+using Eclipse2D.Audio;
+
+namespace Eclipse2D
+{
+    /// <summary>
+    /// Represents an online or offline game with support for rendering, input/output, management, and networking.
+    /// </summary>
+    public class Game : IDisposable
+    {
+        /// <summary>
+        /// Represents if the game window has been disposed.
+        /// </summary>
+        private Boolean m_IsDisposed;
+
+        /// <summary>
+        /// Represents if the game window has been initialized.
+        /// </summary>
+        private Boolean m_IsInitialized;
+
+        /// <summary>
+        /// Represents if the game window is paused.
+        /// </summary>
+        private Boolean m_IsPaused;
+
+        /// <summary>
+        /// Represents the time, in ticks, for the current frame.
+        /// </summary>
+        private Int64 m_CurrFrameTime;
+
+        /// <summary>
+        /// Represents the time, in ticks, for the last frame.
+        /// </summary>
+        private Int64 m_LastFrameTime;
+
+        /// <summary>
+        /// Represents the current frames-per-second that the game loop is running at.
+        /// </summary>
+        private Int32 m_FramesPerSecond;
+
+        /// <summary>
+        /// Represents the game window used by this game.
+        /// </summary>
+        private GameWindow m_GameWindow;
+
+        /// <summary>
+        /// Represents the graphics device associated with this game.
+        /// </summary>
+        private GraphicsDevice m_GraphicsDevice;
+
+        /// <summary>
+        /// Represents the audio associated with this game.
+        /// </summary>
+        private AudioManager m_AudioManager;
+
+        /// <summary>
+        /// Represents the services associated with this game.
+        /// </summary>
+        private GameServices m_GameServices;
+
+        /// <summary>
+        /// Initializes a new Game class with the specified game title.
+        /// </summary>
+        /// <param name="Title">The title for the game.</param>
+        public Game(String Title)
+            : this(Title, 1024, 768)
+        {
+
+        }
+
+        /// <summary>
+        /// Initializes a new Game class with the specified game title, window width, and window height.
+        /// </summary>
+        /// <param name="Title">The title for the game.</param>
+        /// <param name="Width">The width of the game window.</param>
+        /// <param name="Height">The height of the game window.</param>
+        public Game(String Title, Int32 Width, Int32 Height)
+            : this(Title, Width, Height, false)
+        {
+
+        }
+
+        /// <summary>
+        /// Initializes a new Game class with the specified game title, window width, window height, and networking support.
+        /// </summary>
+        /// <param name="Title">The title for the game.</param>
+        /// <param name="Width">The width of the game window.</param>
+        /// <param name="Height">The height of the game window.</param>
+        /// <param name="EnableNetworking">Enables/Disables networking support.</param>
+        public Game(String Title, Int32 Width, Int32 Height, Boolean EnableNetworking)
+        {
+            // Initialize the game base.
+            Initialize(Title, Width, Height, EnableNetworking);
+        }
+
+        /// <summary>
+        /// Initializes the game base.
+        /// </summary>
+        /// <param name="Title">The title for the game.</param>
+        /// <param name="Width">The width of the game window.</param>
+        /// <param name="Height">The height of the game window.</param>
+        /// <param name="EnableNetworking">Enables/Disables networking support.</param>
+        private void Initialize(String Title, Int32 Width, Int32 Height, Boolean EnableNetworking)
+        {
+            // Initialize the game window.
+            m_GameWindow = new GameWindow(Title, Width, Height);
+
+            // Initialize the mouse.
+            Mouse.Initialize(m_GameWindow.RenderForm.Handle);
+
+            // Initialize the keyboard.
+            Keyboard.Initialize(m_GameWindow.RenderForm.Handle);
+
+            // Initialize the game services.
+            m_GameServices = new GameServices();
+
+            // Initialize the graphics device.
+            m_GraphicsDevice = new GraphicsDevice(m_GameWindow.RenderForm);
+
+            // Initialize the audio manager.
+            m_AudioManager = new AudioManager();
+
+            // Registers services used by the game.
+            m_GameServices.RegisterService(m_GraphicsDevice);
+            m_GameServices.RegisterService(m_AudioManager);
+        }
+
+        /// <summary>
+        /// Starts the game.
+        /// </summary>
+        public void Run()
+        {
+            // Check if this game window has already been initialized.
+            if (m_IsInitialized)
+                return;
+
+            // Set the state of the game window to initialized.
+            m_IsInitialized = true;
+
+            // Start the message pump.
+            RenderLoop.Run(m_GameWindow.RenderForm, GameLoop);
+        }
+
+        /// <summary>
+        /// The internal game loop which updates and renders all objects. The timer uses delta-time.
+        /// </summary>
+        private void GameLoop()
+        {
+            // Check if the game loop is paused. This occurs when the game loop has excess time, the
+            // game window is minimized, or in a state where updates and rendering cannot occur.
+            if (m_IsPaused)
+            {
+                System.Threading.Thread.Sleep(100);
+                return;
+            }
+
+            // Set the last frame in ticks it took to finish.
+            m_LastFrameTime = m_CurrFrameTime;
+
+            // Set the current frame time.
+            m_CurrFrameTime = Stopwatch.GetTimestamp();
+
+            // Update the game logic.
+            Update((Double)(m_CurrFrameTime - m_LastFrameTime) / Stopwatch.Frequency);
+
+            // Render the game screen.
+            Draw();
+
+            // Get the frames per second.
+            m_FramesPerSecond = (Int32)(Stopwatch.Frequency / ((Single)(m_CurrFrameTime - m_LastFrameTime)));
+        }
+
+        /// <summary>
+        /// Updates all objects used by the game.
+        /// </summary>
+        /// <param name="DeltaTime"></param>
+        public virtual void Update(Double DeltaTime)
+        {
+            if (Keyboard.GetState().GetKeyState(Keys.F) == KeyboardButtonState.Pressed)
+            {
+                m_GraphicsDevice.SetResolution(1920, 1200);
+                m_GraphicsDevice.SetFullscreenState(!m_GameWindow.IsFullscreen);
+            }
+        }
+
+        /// <summary>
+        /// Draws all objected used by the game.
+        /// </summary>
+        public virtual void Draw(/* Implement Draw Manager */)
+        {
+            // Example drawing.
+            m_GraphicsDevice.Draw();
+        }
+
+        /// <summary>
+        /// Disposes the game.
+        /// </summary>
+        public void Dispose()
+        {
+            // Dispose the game (internal).
+            Dispose(true);
+
+            // Inform the garbage collector that we don't need to finalize this object.
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes the game (internal).
+        /// </summary>
+        /// <param name="Disposing">Determines if the method was called programmatically (true) or by the garbage collector (false).</param>
+        protected virtual void Dispose(Boolean Disposing)
+        {
+            // Checks if the render form has already been disposed.
+            if (!m_IsDisposed)
+            {
+                // Checks if the method was called programmatically (true) or by the garbage collector (false).
+                if (Disposing)
+                {
+                    m_GraphicsDevice.Uninitialize();
+                }
+
+                // Dispose of un-managed resources here.
+            }
+
+            m_IsDisposed = true;
+        }
+    }
+}

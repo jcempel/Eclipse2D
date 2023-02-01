@@ -1,0 +1,396 @@
+﻿using System;
+using System.Windows.Forms;
+using SharpDX;
+using SharpDX.Direct2D1;
+using SharpDX.Direct3D;
+using SharpDX.Direct3D11;
+using SharpDX.DXGI;
+
+namespace Eclipse2D.Graphics
+{
+    public class GraphicsDevice
+    {
+        /// <summary>
+        /// Represents the render form that acts as the game window.
+        /// </summary>
+        private SharpDX.Windows.RenderForm m_RenderForm;
+
+        /// <summary>
+        /// Represents the Direct3D 11 device, which creates Direct3D 11 objects.
+        /// </summary>
+        private SharpDX.Direct3D11.Device m_D3D11Device;
+
+        /// <summary>
+        /// Represents the DXGI swap chain, which is how Direct3D renders to the monitor.
+        /// </summary>
+        private SharpDX.DXGI.SwapChain1 m_DXGISwapChain;
+
+        /// <summary>
+        /// Represents the Direct2D device, which creates Direct2D objects.
+        /// </summary>
+        private SharpDX.Direct2D1.Device m_D2D1Device;
+
+        /// <summary>
+        /// Represents the Direct2D device context, which generates rendering commands.
+        /// </summary>
+        private SharpDX.Direct2D1.DeviceContext m_D2D1DeviceContext;
+
+        /// <summary>
+        /// Represents the Direct2D render target, which is shared with the DXGI surface back buffer.
+        /// </summary>
+        private SharpDX.Direct2D1.Bitmap1 m_D2DRenderTarget;
+
+        /// <summary>
+        /// Initializes a new GraphicsDevice with the specified render form.
+        /// </summary>
+        /// <param name="RenderWindow">The game window associated with this graphics device.</param>
+        public GraphicsDevice(GameWindow GameWindow)
+        {
+            Initialize(GameWindow);
+        }
+
+        /// <summary>
+        /// Initializes the rendering engine.
+        /// </summary>
+        /// <param name="RenderWindow">The game window associated with this graphics device.</param>
+        private void Initialize(GameWindow GameWindow)
+        {
+            // Set the game window.
+            m_RenderForm = GameWindow.RenderWindow;
+
+            // Initialize the feature levels.
+            SharpDX.Direct3D.FeatureLevel[] FeatureLevels = new SharpDX.Direct3D.FeatureLevel[]
+            {
+                SharpDX.Direct3D.FeatureLevel.Level_11_1,
+                SharpDX.Direct3D.FeatureLevel.Level_11_0,
+                SharpDX.Direct3D.FeatureLevel.Level_10_1,
+                SharpDX.Direct3D.FeatureLevel.Level_10_0,
+                SharpDX.Direct3D.FeatureLevel.Level_9_3,
+                SharpDX.Direct3D.FeatureLevel.Level_9_2,
+                SharpDX.Direct3D.FeatureLevel.Level_9_1
+            };
+
+            // Initialize the Direct3D11 device with BGRA support for Direct2D.
+            m_D3D11Device = new SharpDX.Direct3D11.Device(DriverType.Hardware, DeviceCreationFlags.BgraSupport, FeatureLevels);
+
+            // Query the Direct3D11 device for the DXGI device.
+            using (SharpDX.DXGI.Device DXGIDevice = m_D3D11Device.QueryInterface<SharpDX.DXGI.Device>())
+            {
+                // Initialize the Direct2D1 device.
+                m_D2D1Device = new SharpDX.Direct2D1.Device(DXGIDevice);
+
+                // Initialize the Direct2D1 device context.
+                m_D2D1DeviceContext = new SharpDX.Direct2D1.DeviceContext(m_D2D1Device, DeviceContextOptions.None);
+
+                // Query the device adapter to get the factory needed to initialize the swap chain.
+                using (SharpDX.DXGI.Factory2 DXGIFactory = DXGIDevice.Adapter.GetParent<SharpDX.DXGI.Factory2>())
+                {
+                    // Initialize the DXGI swap chain.
+                    SharpDX.DXGI.SwapChainDescription1 SwapChainDesc = new SwapChainDescription1()
+                    {
+                        // Automatic sizing for the width of the window.
+                        Width = 0,
+
+                        // Automatic sizing for the height of the window.
+                        Height = 0,
+
+                        // Allows the swap chain to be compatible with Direct2D.
+                        Format = SharpDX.DXGI.Format.B8G8R8A8_UNorm,
+
+                        // Disable multi-sampling.
+                        SampleDescription = new SampleDescription(1, 0),
+
+                        // Allows rendering on the back buffer.
+                        Usage = Usage.RenderTargetOutput,
+
+                        // Allows double-buffering.
+                        BufferCount = 2,
+
+                        // Discards the back buffer contents after each Present.
+                        SwapEffect = SwapEffect.Discard,
+
+                        // Allows window transitions.
+                        Flags = SwapChainFlags.AllowModeSwitch
+                    };
+
+                    // Initialize the swap chain from the DXGI factory.
+                    m_DXGISwapChain = new SwapChain1(DXGIFactory, m_D3D11Device, m_RenderForm.Handle, ref SwapChainDesc);
+                }
+            }
+
+            // Initialize device resource, including the render target.
+            InitializeResources();
+        }
+
+        /// <summary>
+        /// Initializes any device-dependent resources used by the graphics device.
+        /// </summary>
+        private void InitializeResources()
+        {
+            // Initialize the bitmap properties. This configures the bitmap linked to the swap chain.
+            SharpDX.Direct2D1.BitmapProperties1 BitmapProperties = new SharpDX.Direct2D1.BitmapProperties1()
+            {
+                // Sets the bitmap up to be used as a render target.
+                BitmapOptions = BitmapOptions.Target | BitmapOptions.CannotDraw,
+
+                // Configure the pixel format to be compatible with Direct2D1.
+                PixelFormat = new SharpDX.Direct2D1.PixelFormat(Format.B8G8R8A8_UNorm, SharpDX.Direct2D1.AlphaMode.Ignore),
+
+                // Gets the DPI width used by the monitor.
+                DpiX = m_D2D1DeviceContext.DotsPerInch.Width,
+
+                // Gets the DPI height used by the monitor.
+                DpiY = m_D2D1DeviceContext.DotsPerInch.Height
+            };
+
+            // Get the underlying surface that will be bound to the Direct2D1 render target.
+            using (SharpDX.DXGI.Surface DXGISurface = m_DXGISwapChain.GetBackBuffer<SharpDX.DXGI.Surface>(0))
+            {
+                // Initialize the Direct2D1 render target.
+                m_D2DRenderTarget = new SharpDX.Direct2D1.Bitmap1(m_D2D1DeviceContext, DXGISurface, BitmapProperties);
+            }
+
+            // Set the render target on the Direct2D1 device context.
+            m_D2D1DeviceContext.Target = m_D2DRenderTarget;
+        }
+
+        /// <summary>
+        /// Sets the screen state of the game window.
+        /// </summary>
+        /// <param name="IsFullScreen">Determines if the screen state of the game window is full-screen or windowed.</param>
+        public void SetFullscreen(Boolean IsFullScreen)
+        {
+            // Prepares the game window to become full-screen. Setting this alone doesn't change the game
+            // window to full-screen, but it disables window features that can't be used in full-screen.
+            m_RenderForm.IsFullscreen = IsFullScreen;
+
+            // Sets the screen state to full-screen using the current windowed resolution.
+            m_DXGISwapChain.SetFullscreenState(IsFullScreen, null);
+        }
+
+        /// <summary>
+        /// Sets the game window resolution to the specified width and height.
+        /// </summary>
+        /// <param name="Width">The width of the game window.</param>
+        /// <param name="Height">The height of the game window.</param>
+        public void SetResolution(Int32 Width, Int32 Height)
+        {
+            SetResolution(new System.Drawing.Size(Width, Height));
+        }
+
+        /// <summary>
+        /// Sets the game window resolution to the specified size.
+        /// </summary>
+        /// <param name="Resolution">The size (width and height) of the game window.</param>
+        public void SetResolution(System.Drawing.Size Resolution)
+        {
+            // Check if we're in windowed mode.
+            if (!m_RenderForm.IsFullscreen)
+            {
+                // Set the new resolution on the game window.
+                m_RenderForm.ClientSize = Resolution;
+            }
+
+            // Dispose any device-dependent resources.
+            DisposeResources();
+
+            // Resize the back buffers.
+            m_DXGISwapChain.ResizeBuffers(0, Resolution.Width, Resolution.Height, Format.B8G8R8A8_UNorm, SwapChainFlags.AllowModeSwitch);
+
+            // Resize the swap chain buffers to set the fullscreen resolution.
+            ModeDescription TargetDescription = new ModeDescription()
+            {
+                Width = Resolution.Width,
+                Height = Resolution.Height,
+                RefreshRate = new Rational(60, 1),
+                Format = Format.B8G8R8A8_UNorm
+            };
+
+            // Resize the output target.
+            m_DXGISwapChain.ResizeTarget(ref TargetDescription);
+
+            // Reload any device-dependent resources.
+            InitializeResources();
+        }
+
+        /// <summary>
+        /// Disposes any device-dependent resources used by the graphics device.
+        /// </summary>
+        private void DisposeResources()
+        {
+            // Dispose existing objects.
+            m_D2D1DeviceContext.Target = null;
+
+            // Dispose the render target.
+            Utilities.Dispose(ref m_D2DRenderTarget);
+        }
+
+        /// <summary>
+        /// Sets the render target associated with the device context.
+        /// </summary>
+        /// <param name="RenderTarget">The render target to use with the device context.</param>
+        public void SetRenderTarget(Image RenderTarget)
+        {
+            m_D2D1DeviceContext.Target = RenderTarget;
+        }
+
+        /// <summary>
+        /// Sets/Gets the transformation matrix associated with the device context.
+        /// </summary>
+        /// <param name="Transform">The transformation matrix.</param>
+        public Matrix3x2 Transform
+        {
+            set
+            {
+                m_D2D1DeviceContext.Transform = value;
+            }
+
+            get
+            {
+                return m_D2D1DeviceContext.Transform;
+            }
+        }
+
+        /// <summary>
+        /// Clears the back buffer to the specified color.
+        /// </summary>
+        /// <param name="ClearColor">The color to clear the back buffer.</param>
+        public void Clear(Color ClearColor)
+        {
+            m_D2D1DeviceContext.Clear(ClearColor);
+        }
+
+        /// <summary>
+        /// Begins the drawing sequence for the render target.
+        /// </summary>
+        public void BeginDraw()
+        {
+            m_D2D1DeviceContext.BeginDraw();
+        }
+
+        /// <summary>
+        /// Ends the drawing sequence for the render target.
+        /// </summary>
+        public void EndDraw()
+        {
+            m_D2D1DeviceContext.EndDraw();
+        }
+
+        /// <summary>
+        /// Presents the rendered image.
+        /// </summary>
+        public void Present()
+        {
+            Present(1);
+        }
+
+        /// <summary>
+        /// Presents the rendered image with the specified sync interval.
+        /// </summary>
+        /// <param name="SyncInterval">The interval between each verticle blank.</param>
+        public void Present(Int32 SyncInterval)
+        {
+            m_DXGISwapChain.Present(SyncInterval, PresentFlags.None);
+        }
+
+        /// <summary>
+        /// Presents the rendered image with the specified sync interval and presentation flags.
+        /// </summary>
+        /// <param name="SyncInterval">The interval between each verticle blank.</param>
+        /// <param name="Flags">The presentation flags to use.</param>
+        public void Present(Int32 SyncInterval, PresentFlags Flags)
+        {
+            m_DXGISwapChain.Present(SyncInterval, Flags);
+        }
+
+        /// <summary>
+        /// Draws the bitmap to the render target with the specified opacity.
+        /// </summary>
+        /// <param name="Bitmap">The bitmap to draw to the render target.</param>
+        /// <param name="Opacity">The opacity to apply to the bitmap.</param>
+        /// <dev-note>Test method until the Texture2D is fully-functional.</dev-note>
+        public void DrawBitmap(Bitmap1 Bitmap, Single Opacity)
+        {
+            m_D2D1DeviceContext.DrawBitmap(Bitmap, Opacity, SharpDX.Direct2D1.InterpolationMode.Linear);
+        }
+
+        /// <summary>
+        /// Draws the texture to the render target with the specified opacity.
+        /// </summary>
+        /// <param name="Texture">The texture to draw to the render target.</param>
+        /// <param name="Opacity">The opacity to apply to the texture.</param>
+        public void DrawTexture2D(Texture2D Texture, Single Opacity)
+        {
+            m_D2D1DeviceContext.DrawBitmap(Texture.Bitmap, Opacity, SharpDX.Direct2D1.InterpolationMode.Linear);
+        }
+
+        /// <summary>
+        /// Draws the texture to the render target with the specified destination rectangle and opacity.
+        /// </summary>
+        /// <param name="Texture">The texture to draw to the render target.</param>
+        /// <param name="DestinationRectangle">The destination rectangle for the texture.</param>
+        /// <param name="Opacity">The opacity to apply to the texture.</param>
+        public void DrawTexture2D(Texture2D Texture, RectangleF DestinationRectangle, Single Opacity)
+        {
+            m_D2D1DeviceContext.DrawBitmap(Texture.Bitmap, DestinationRectangle, Opacity, SharpDX.Direct2D1.BitmapInterpolationMode.Linear);
+        }
+
+        /// <summary>
+        /// Draws the texture to the render target with the specified destination rectangle, source rectangle, and opacity.
+        /// </summary>
+        /// <param name="Texture">The texture to draw to the render target.</param>
+        /// <param name="DestinationRectangle">The destination rectangle for the texture.</param>
+        /// <param name="SourceRectangle">The source rectangle for the texture.</param>
+        /// <param name="Opacity">The opacity to apply to the texture.</param>
+        public void DrawTexture2D(Texture2D Texture, RectangleF DestinationRectangle, RectangleF SourceRectangle, Single Opacity)
+        {
+            m_D2D1DeviceContext.DrawBitmap(Texture.Bitmap, DestinationRectangle, Opacity, SharpDX.Direct2D1.BitmapInterpolationMode.Linear, SourceRectangle);
+        }
+
+        /// <summary>
+        /// Dispose all the created objects.
+        /// </summary>
+        public void Dispose()
+        {
+            Utilities.Dispose(ref m_DXGISwapChain);
+            Utilities.Dispose(ref m_D2DRenderTarget);
+            Utilities.Dispose(ref m_D2D1DeviceContext);
+            Utilities.Dispose(ref m_D2D1Device);
+            Utilities.Dispose(ref m_D3D11Device);
+        }
+
+        /// <summary>
+        /// Gets the Direct2D device.
+        /// </summary>
+        public SharpDX.Direct2D1.Device D2DDevice
+        {
+            get
+            {
+                return m_D2D1Device;
+            }
+        }
+
+        /// <summary>
+        /// Gets the Direct2D device context.
+        /// </summary>
+        public SharpDX.Direct2D1.DeviceContext D2DDeviceContext
+        {
+            get
+            {
+                return m_D2D1DeviceContext;
+            }
+        }
+
+        /// <summary>
+        /// Gets the mode description for the resolution.
+        /// TODO: Move this to where it needs to be.
+        /// </summary>
+        public ModeDescription ModeDescription
+        {
+            get
+            {
+                return m_DXGISwapChain.Description.ModeDescription;
+            }
+        }
+    }
+}

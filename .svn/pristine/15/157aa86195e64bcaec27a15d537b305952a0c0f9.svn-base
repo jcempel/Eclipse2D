@@ -1,0 +1,145 @@
+﻿using System;
+using System.Diagnostics;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Eclipse2D
+{
+    /// <summary>
+    /// Represents a game clock which operates in delta-time.
+    /// </summary>
+    public class GameClock
+    {
+        /// <summary>
+        /// Represents the amount of seconds per count.
+        /// </summary>
+        private readonly Double m_SecondsPerCount;
+
+        /// <summary>
+        /// Represents the amount of time since the last frame, in delta-time.
+        /// </summary>
+        private Double m_DeltaTime;
+
+        /// <summary>
+        /// Represents the amount of time the game clock has been paused, in total time.
+        /// </summary>
+        private Int64 m_PausedTime;
+
+        /// <summary>
+        /// Represents the time the game clock was last stopped.
+        /// </summary>
+        private Int64 m_StopTime;
+
+        /// <summary>
+        /// Represents the game time of the previous frame.
+        /// </summary>
+        private Int64 m_PreviousTime;
+
+        /// <summary>
+        /// Represents the game time of the current frame.
+        /// </summary>
+        private Int64 m_CurrentTime;
+
+        /// <summary>
+        /// Represents if the game clock is currently running.
+        /// </summary>
+        private bool m_IsStopped;
+
+        /// <summary>
+        /// Initializes a new GameClock.
+        /// </summary>
+        public GameClock()
+        {
+            m_SecondsPerCount = 0.0;
+            m_DeltaTime = -1.0;
+            m_PausedTime = 0;
+            m_PreviousTime = 0;
+            m_CurrentTime = 0;
+            m_IsStopped = false;
+
+            m_SecondsPerCount = 1.0 / Stopwatch.Frequency;
+
+        }
+
+        /// <summary>
+        /// Resets the game clock.
+        /// </summary>
+        public void Reset()
+        {
+            m_PreviousTime = Stopwatch.GetTimestamp();
+            m_StopTime = 0;
+            m_IsStopped = false;
+        }
+
+        /// <summary>
+        /// Starts the game clock.
+        /// </summary>
+        public void Start()
+        {
+            Int64 StartTime = Stopwatch.GetTimestamp();
+
+            // Check if the game clock is stopped.
+            if (m_IsStopped)
+            {
+                // Get the elapsed time of the pause.
+                m_PausedTime += (StartTime - m_StopTime);
+
+                m_PreviousTime = StartTime;
+                m_StopTime = 0;
+                m_IsStopped = false;
+            }
+        }
+
+        /// <summary>
+        /// Stops the game clock.
+        /// </summary>
+        public void Stop()
+        {
+            // Check if the game clock is not stopped.
+            if (!m_IsStopped)
+            {
+                m_StopTime = Stopwatch.GetTimestamp();
+                m_IsStopped = true;
+            }
+        }
+
+        /// <summary>
+        /// Updates the elapsed time, in delta, from the previous tick.
+        /// </summary>
+        public void Tick()
+        {
+            // Check if the game clock is stopped.
+            if (m_IsStopped)
+            {
+                m_DeltaTime = 0.0;
+                return;
+            }
+
+            // Get the latest timestamp.
+            m_CurrentTime = Stopwatch.GetTimestamp();
+
+            // Update the time it took to complete the previous frame.
+            m_DeltaTime = (m_CurrentTime - m_PreviousTime) * m_SecondsPerCount;
+
+            // The current time is now the previous time, and this will be used to compute
+            // the time it took to complete the previous frame the next time we update the frame.
+            m_PreviousTime = m_CurrentTime;
+
+            // Check if the delta-time is below zero and make adjustments if needed.
+            if (m_DeltaTime < 0.0)
+            {
+                m_DeltaTime = 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Gets the time it took to complete the last frame.
+        /// </summary>
+        public Single DeltaTime
+        {
+            get { return (Single)m_DeltaTime; }
+        }
+    }
+}

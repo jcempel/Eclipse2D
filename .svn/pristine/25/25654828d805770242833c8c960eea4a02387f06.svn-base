@@ -1,0 +1,172 @@
+﻿using System;
+using System.IO;
+using System.Windows.Forms;
+using System.Collections.Generic;
+using SharpDX;
+using SharpDX.XAudio2;
+using SharpDX.MediaFoundation;
+using SharpDX.Multimedia;
+using SharpDX.IO;
+
+namespace Eclipse2D.Audio
+{
+    public class AudioManager : IDisposable
+    {
+        /// <summary>
+        /// Represents the XAudio2 device.
+        /// </summary>
+        private XAudio2 m_XAudio2;
+
+        /// <summary>
+        /// Represents the audio output device (speakers, headset, etc).
+        /// </summary>
+        private MasteringVoice m_MasteringVoice;
+
+        /// <summary>
+        /// Represents if the audio engine is allowing audio processing.
+        /// </summary>
+        private Boolean m_AudioEnabled;
+
+        /// <summary>
+        /// Represents if the audio manager has been disposed.
+        /// </summary>
+        private Boolean m_IsDisposed;
+
+        /// <summary>
+        /// An event that fires after the audio engine has been loaded.
+        /// </summary>
+        public event EventHandler OnLoad;
+
+        /// <summary>
+        /// An event that fires before the audio engine is disposed.
+        /// </summary>
+        public event EventHandler OnUnload;
+
+        /// <summary>
+        /// Initializes a new AudioManager class, which manages all audio content.
+        /// </summary>
+        public AudioManager()
+        {
+            // Initialize XAudio2.
+            InitXAudio2();
+        }
+
+        /// <summary>
+        /// Initializes the XAudio2 engine.
+        /// </summary>
+        /// <returns></returns>
+        private Boolean InitXAudio2()
+        {
+            // Initializes the XAudio2 engine using the default processor and the latest version installed.
+            // Note: The version requirements are as follows:
+            //          XAudio2 2.7 requires Windows 7+.
+            //          XAudio2 2.8 requires Windows 8+.
+            //          XAudio2 2.9 requires Windows 10+.
+            m_XAudio2 = new XAudio2(XAudio2Flags.None, ProcessorSpecifier.DefaultProcessor, XAudio2Version.Version27);
+
+            // Sets if audio is enabled. True if an audio output device exists, otherwise, false.
+            m_AudioEnabled = (m_XAudio2.DeviceCount != 0 ? true : false);
+
+            // Checks if audio is enabled.
+            if (!m_AudioEnabled)
+            {
+                return false;
+            }
+
+            // Initialize the audio output device.
+            m_MasteringVoice = new MasteringVoice(m_XAudio2);
+
+            // Let the listeners know that the audio engine has been loaded.
+            OnLoad?.Invoke(this, EventArgs.Empty);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Disposes the audio manager.
+        /// </summary>
+        public void Dispose()
+        {
+            // Disposes the audio manager.
+            Dispose(true);
+
+            // Inform the garbage collector that we don't need to finalize this object.
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes the audio manager.
+        /// </summary>
+        /// <param name="Disposing">Determines if the method was called programmatically (true) or by the garbage collector (false).</param>
+        protected virtual void Dispose(Boolean Disposing)
+        {
+            // Checks if the audio manager has already been disposed.
+            if (!m_IsDisposed)
+            {
+                // Checks if the method was called programmatically (true) or by the garbage collector (false).
+                if (Disposing)
+                {
+                    // Let the listeners know that the audio manager is closing.
+                    OnUnload?.Invoke(this, EventArgs.Empty);
+
+                    // Dispose objects.
+                    m_MasteringVoice?.Dispose();
+                    m_XAudio2?.Dispose();
+                }
+
+                // Dispose of un-managed resources here.
+            }
+
+            m_IsDisposed = true;
+        }
+
+        /// <summary>
+        /// Gets the XAudio2 audio device.
+        /// </summary>
+        public XAudio2 Device
+        {
+            get
+            {
+                return m_XAudio2;
+            }
+        }
+
+        /// <summary>
+        /// Gets the device the audio manager is using for output.
+        /// </summary>
+        public MasteringVoice OutputDevice
+        {
+            get
+            {
+                return m_MasteringVoice;
+            }
+        }
+
+        /// <summary>
+        /// Sets/Gets the master volume.
+        /// </summary>
+        public Single MasterVolume
+        {
+            set
+            {
+                m_MasteringVoice.SetVolume(value);
+            }
+
+            get
+            {
+                return m_MasteringVoice.Volume;
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of available devices.
+        /// </summary>
+        public Int32 DeviceCount
+        {
+            get
+            {
+                return m_XAudio2.DeviceCount;
+            }
+        }
+    }
+}

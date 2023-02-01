@@ -1,0 +1,119 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using SharpDX;
+using Eclipse2D.Graphics;
+
+namespace Eclipse2D.GameClient
+{
+    /// <summary>
+    /// Represents the Eclipse2D demo game.
+    /// </summary>
+    class EclipseGame : Game
+    {
+        /// <summary>
+        /// Represents the player.
+        /// </summary>
+        private Texture2D m_PlayerTexture;
+
+        /// <summary>
+        /// Represents the terrain the player is standing on.
+        /// </summary>
+        private Texture2D m_TerrainTexture;
+
+        private Int32 m_HalfWidth;
+
+        private Int32 m_HalfHeight;
+
+        private Single m_AlphaLevel;
+
+        private Single m_RotationLevel;
+
+        private Single m_ScaleLevel;
+
+        private Boolean m_ScalingUp;
+
+        /// <summary>
+        /// Initializes the EclipseGame class with the specified title, width, height, and network option.
+        /// </summary>
+        /// <param name="Title">The title of the game window.</param>
+        /// <param name="Width">The width of the client-area of the game window.</param>
+        /// <param name="Height">The height of the client-area of the game window.</param>
+        /// <param name="EnableNetworking">Whether or not the game is online or offline.</param>
+        public EclipseGame(String Title, Int32 Width, Int32 Height, Boolean EnableNetworking)
+            : base(Title, Width, Height, EnableNetworking)
+        {
+            m_AlphaLevel = 1.0F;
+            m_RotationLevel = 0.0F;
+            m_ScaleLevel = 1.0F;
+            m_ScalingUp = true;
+        }
+
+        public override void Initialize()
+        {
+            m_PlayerTexture = new Texture2D(Graphics, "/Assets/Bitmaps/player.png");
+            m_TerrainTexture = new Texture2D(Graphics, "/Assets/Bitmaps/terrain.png");
+        }
+
+        public override void Update(Double DeltaTime)
+        {
+            m_HalfWidth = Graphics.ModeDescription.Width / 2;
+            m_HalfHeight = Graphics.ModeDescription.Height / 2;
+
+            // Test opacity with the rendered bitmaps.
+            if (m_AlphaLevel > 1.0F)
+                m_AlphaLevel = 0.0F;
+            else
+                m_AlphaLevel += 0.01F;
+
+            // Test rotation with rendered bitmaps.
+            m_RotationLevel += 0.1F;
+
+            if (m_ScalingUp)
+            {
+                if (m_ScaleLevel > 8.0F)
+                    m_ScalingUp = false;
+                else
+                    m_ScaleLevel += 0.1F;
+            }
+            else
+            {
+                if (m_ScaleLevel < 0.5F)
+                    m_ScalingUp = true;
+                else
+                    m_ScaleLevel -= 0.1F;
+            }
+
+            base.Update(DeltaTime);
+        }
+
+        public override void Draw()
+        {
+            Graphics.BeginDraw();
+
+            Graphics.Clear(Color.CornflowerBlue);
+
+            Graphics.Transform = Matrix3x2.Translation(m_HalfWidth, m_HalfHeight - m_PlayerTexture.Size.Height);
+
+            // Apply a rotation effect.
+            Graphics.Transform = Graphics.Transform * Matrix3x2.Rotation(m_RotationLevel, new Vector2(m_HalfWidth + (66 / 2), (m_HalfHeight - m_PlayerTexture.Size.Height) + (92 / 2)));
+
+            // Apply a scaling effect.
+            Graphics.Transform = Graphics.Transform * Matrix3x2.Scaling(m_ScaleLevel, m_ScaleLevel, new Vector2(m_HalfWidth + (66 / 2), (m_HalfHeight - m_PlayerTexture.Size.Height) + (92 / 2)));
+
+            Graphics.DrawTexture2D(m_PlayerTexture, 1.0F);
+
+            Graphics.EndDraw();
+
+            Graphics.Present(1);
+        }
+
+        public override void Uninitialize()
+        {
+            m_PlayerTexture.Dispose();
+            m_TerrainTexture.Dispose();
+        }
+    }
+}

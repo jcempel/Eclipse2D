@@ -1,0 +1,75 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using SharpDX;
+using Eclipse2D;
+using Eclipse2D.Graphics;
+using Eclipse2D.Input;
+using Eclipse2D.GameClient.GameScreens;
+
+namespace Eclipse2D.GameClient
+{
+    /// <summary>
+    /// Represents the Eclipse2D game client.
+    /// </summary>
+    class EclipseGame : Game
+    {
+        /// <summary>
+        /// Initializes the EclipseGame class with the specified title, width, and height.
+        /// </summary>
+        /// <param name="Title">The title of the game window.</param>
+        /// <param name="Width">The width of the client-area of the game window.</param>
+        /// <param name="Height">The height of the client-area of the game window.</param>
+        public EclipseGame(String Title, Int32 Width, Int32 Height)
+            : base(Title, Width, Height)
+        {
+
+        }
+
+        /// <summary>
+        /// Initializes the game.
+        /// </summary>
+        public override void Initialize()
+        {
+            // Add our title screen to the manager.
+            ScreenManager.AddGameScreen("TitleScreen", new TitleScreen(this));
+            ScreenManager.AddGameScreen("MainScreen", new MainScreen(this));
+
+            // Set the title screen as our default game screen.
+            ScreenManager.SetGameScreen("TitleScreen");
+        }
+
+        /// <summary>
+        /// Updates the game.
+        /// </summary>
+        /// <param name="GameTime">The delta-time between frames.</param>
+        public override void Update(Double GameTime)
+        {
+            // Update the current game screen.
+            ScreenManager.Update(GameTime);
+
+            base.Update(GameTime);
+        }
+
+        /// <summary>
+        /// Draws the game.
+        /// </summary>
+        /// <param name="GameTime">The delta-time between frames.</param>
+        public override void Draw(Double GameTime)
+        {
+            // Draw the current game screen.
+            ScreenManager.Draw(GameTime);
+        }
+
+        /// <summary>
+        /// Un-initializes the game.
+        /// </summary>
+        public override void Uninitialize()
+        {
+            // Dispose the game screen manager.
+            ScreenManager.Dispose();
+        }
+    }
+}

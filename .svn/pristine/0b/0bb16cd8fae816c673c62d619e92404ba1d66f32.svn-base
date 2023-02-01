@@ -1,0 +1,147 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Eclipse2D.Audio;
+using Eclipse2D.Graphics;
+
+namespace Eclipse2D
+{
+    /// <summary>
+    /// Represents a game screen manager which manages a collection of game screens.
+    /// </summary>
+    public class GameScreenManager : IDisposable
+    {
+        /// <summary>
+        /// Represents a collection of in-active game screens.
+        /// </summary>
+        private Dictionary<String, IGameScreen> m_GameScreens;
+
+        /// <summary>
+        /// Represents an active game screen currently being rendered.
+        /// </summary>
+        private IGameScreen m_CurrentScreen;
+
+        /// <summary>
+        /// Initializes the game screen manager.
+        /// </summary>
+        public GameScreenManager()
+        {
+            // Initialize the game screen collection.
+            m_GameScreens = new Dictionary<String, IGameScreen>();
+
+            // Set the current game screen.
+            m_CurrentScreen = null;
+        }
+
+        /// <summary>
+        /// Adds a game screen to the game screen manager.
+        /// </summary>
+        /// <param name="ScreenName">The unique screen name used to identify the game screen.</param>
+        /// <param name="GameScreen">The game screen being added to the game screen manager.</param>
+        public void AddGameScreen(String ScreenName, IGameScreen GameScreen)
+        {
+            // Check if the screen name exists.
+            if (m_GameScreens.ContainsKey(ScreenName))
+            {
+                throw new Exception("The game screen manager attempted to add a game screen that already exists.");
+            }
+
+            // Adds the game screen to the game screen manager.
+            m_GameScreens.Add(ScreenName, GameScreen);
+        }
+
+        /// <summary>
+        /// Removes a game screen from the game screen manager.
+        /// </summary>
+        /// <param name="ScreenName">The unique screen name used to identify the game screen.</param>
+        public void RemoveGameScreen(String ScreenName)
+        {
+            // Check if the screen name exists.
+            if (!m_GameScreens.ContainsKey(ScreenName))
+            {
+                throw new Exception("The game screen manager attempted to remove a game screen that doesn't exist.");
+            }
+
+            // Removes the game screen from the game screen manager.
+            m_GameScreens.Remove(ScreenName);
+        }
+
+        /// <summary>
+        /// Sets a game screen to be the active game screen.
+        /// </summary>
+        /// <param name="ScreenName">The unique screen name used to identify the game screen.</param>
+        public void SetGameScreen(String ScreenName)
+        {
+            // Check if the screen name exists.
+            if (!m_GameScreens.ContainsKey(ScreenName))
+            {
+                throw new Exception("The game screen manager attempted to set a game screen that doesn't exist.");
+            }
+
+            // Check if there is an existing game screen.
+            if (m_CurrentScreen != null)
+            {
+                // Unload any content used by the game screen.
+                m_CurrentScreen.UnloadContent();
+
+                // Un-initialize the game screen.
+                m_CurrentScreen.Uninitialize();
+            }
+
+            // Get the new game screen from the collection.
+            IGameScreen NewGameScreen = m_GameScreens[ScreenName];
+
+            // Initialize the new game screen.
+            NewGameScreen.Initialize();
+
+            // Load any content used by the new game screen.
+            NewGameScreen.LoadContent();
+
+            // Sets the new active game screen.
+            m_CurrentScreen = NewGameScreen;
+        }
+
+        /// <summary>
+        /// Updates the active game screen.
+        /// </summary>
+        /// <param name="GameTime">The delta-time between frames.</param>
+        public void Update(Double GameTime)
+        {
+            m_CurrentScreen.Update(GameTime);
+        }
+
+        /// <summary>
+        /// Draws the active game screen.
+        /// </summary>
+        /// <param name="GameTime">The delta-time between frames.</param>
+        public void Draw(Double GameTime)
+        {
+            m_CurrentScreen.Draw(GameTime);
+        }
+
+        /// <summary>
+        /// Disposes the game screen manager.
+        /// </summary>
+        public void Dispose()
+        {
+            // Checks if any game screens exist.
+            if (m_GameScreens.Count > 0)
+            {
+                // Dispose all of the game screens.
+                foreach (var Screen in m_GameScreens)
+                {
+                    Screen.Value.UnloadContent();
+                    Screen.Value.Uninitialize();
+                }
+
+                // Clear the collection.
+                m_GameScreens.Clear();
+            }
+
+            // Clear the current game screen.
+            m_CurrentScreen = null;
+        }
+    }
+}

@@ -1,0 +1,307 @@
+﻿using System;
+using System.Windows.Forms;
+using System.Diagnostics;
+using System.Drawing;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using SharpDX.Windows;
+using Eclipse2D.Input;
+using Eclipse2D.Graphics;
+using Eclipse2D.Audio;
+
+namespace Eclipse2D
+{
+    /// <summary>
+    /// Represents an online or offline game with support for rendering, input/output, management, and networking.
+    /// </summary>
+    public class Game : IDisposable
+    {
+        /// <summary>
+        /// Represents if the game has been disposed.
+        /// </summary>
+        private Boolean m_IsDisposed;
+
+        /// <summary>
+        /// Represents if the game is currently running.
+        /// </summary>
+        private Boolean m_IsRunning;
+
+        /// <summary>
+        /// Represents the current timing used by this game.
+        /// </summary>
+        private GameTime m_GameTimer;
+
+        /// <summary>
+        /// Represents the game window used by this game.
+        /// </summary>
+        private GameWindow m_GameWindow;
+
+        /// <summary>
+        /// Represents the graphics device associated with this game.
+        /// </summary>
+        private GraphicsDevice m_GraphicsDevice;
+
+        /// <summary>
+        /// Represents the audio device associated with this game.
+        /// </summary>
+        private AudioDevice m_AudioDevice;
+
+        /// <summary>
+        /// Represents the manager that controls all game screens.
+        /// </summary>
+        private GameScreenManager m_ScreenManager;
+
+        /// <summary>
+        /// Represents the services associated with this game.
+        /// </summary>
+        private GameServices m_GameServices;
+
+        /// <summary>
+        /// Initializes a new Game class with the specified game title.
+        /// </summary>
+        /// <param name="Title">The title for the game.</param>
+        public Game(String Title)
+            : this(Title, 1024, 768)
+        {
+
+        }
+
+        /// <summary>
+        /// Initializes a new Game class with the specified game title, width, and height.
+        /// </summary>
+        /// <param name="Title">The title for the game.</param>
+        /// <param name="Width">The width of the game window.</param>
+        /// <param name="Height">The height of the game window.</param>
+        public Game(String Title, Int32 Width, Int32 Height)
+        {
+            // Initialize the game window.
+            m_GameWindow = new GameWindow(Title, Width, Height);
+
+            // Hook the game window events.
+            m_GameWindow.InitCallback = Game_Initialize;
+            m_GameWindow.ExitCallback = Game_Uninitialize;
+            m_GameWindow.FrameCallback = Game_NextFrame;
+        }
+
+        /// <summary>
+        /// Starts the game.
+        /// </summary>
+        public void Run()
+        {
+            m_GameWindow.Run();
+        }
+
+        /// <summary>
+        /// Initializes services and low-level systems for the game.
+        /// </summary>
+        private void Game_Initialize()
+        {
+            // Initialize the mouse.
+            Mouse.Initialize(m_GameWindow);
+
+            // Initialize the keyboard.
+            Keyboard.Initialize(m_GameWindow);
+
+            // Initialize the base game time.
+            m_GameTimer = new GameTime();
+
+            // Initialize the graphics device.
+            m_GraphicsDevice = new GraphicsDevice(m_GameWindow);
+
+            // Initialize the audio manager.
+            m_AudioDevice = new AudioDevice();
+
+            // Initialize the game screen manager.
+            m_ScreenManager = new GameScreenManager();
+
+            // Initialize the game services.
+            m_GameServices = new GameServices();
+
+            // Registers services used by the game.
+            m_GameServices.RegisterService(m_GraphicsDevice);
+            m_GameServices.RegisterService(m_AudioDevice);
+            m_GameServices.RegisterService(m_ScreenManager);
+
+            // Initialize user systems.
+            Initialize();
+        }
+
+        /// <summary>
+        /// Prepares the next frame to be updated and then drawn.
+        /// </summary>
+        private void Game_NextFrame()
+        {
+            // Gets the amount of delta-time between the current and the last frame.
+            m_GameTimer.Tick();
+
+            // Update the game logic.
+            Update(m_GameTimer);
+
+            // Render the game screen.
+            Draw(m_GameTimer);
+        }
+
+        /// <summary>
+        /// Un-initializes services and low-level systems for the game.
+        /// </summary>
+        private void Game_Uninitialize()
+        {
+            // Un-initialize user systems.
+            Uninitialize();
+        }
+
+        /// <summary>
+        /// Initializes user services and user low-level systems for the game.
+        /// </summary>
+        public virtual void Initialize()
+        {
+
+        }
+
+        /// <summary>
+        /// Updates all objects used by the game.
+        /// </summary>
+        /// <param name="GameTime">The delta-time between frames.</param>
+        public virtual void Update(GameTime GameTime)
+        {
+            if (Keyboard.GetState().IsKeyPressed(Keys.F))
+            {
+                m_GraphicsDevice.SetResolution(1920, 1200);
+                m_GraphicsDevice.SetFullscreenState(!m_GameWindow.IsFullscreen);
+            }
+        }
+
+        /// <summary>
+        /// Draws all objected used by the game.
+        /// </summary>
+        /// <param name="GameTime">The delta-time between frames.</param>
+        public virtual void Draw(GameTime GameTime)
+        {
+
+        }
+
+        /// <summary>
+        /// Un-initializes user services and user low-level systems for the game.
+        /// </summary>
+        public virtual void Uninitialize()
+        {
+
+        }
+
+        /// <summary>
+        /// Disposes the game.
+        /// </summary>
+        public void Dispose()
+        {
+            // Dispose the game (internal).
+            Dispose(true);
+
+            // Inform the garbage collector that we don't need to finalize this object.
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes the game (internal).
+        /// </summary>
+        /// <param name="Disposing">Determines if the method was called programmatically (true) or by the garbage collector (false).</param>
+        protected virtual void Dispose(Boolean Disposing)
+        {
+            // Checks if the render form has already been disposed.
+            if (!m_IsDisposed)
+            {
+                // Checks if the method was called programmatically (true) or by the garbage collector (false).
+                if (Disposing)
+                {
+                    // Dispose the graphics device.
+                    m_GraphicsDevice.Dispose();
+
+                    // Dispose the audio device.
+                    m_AudioDevice.Dispose();
+                }
+
+                // Dispose of un-managed resources here.
+            }
+
+            m_IsDisposed = true;
+        }
+
+        /// <summary>
+        /// Gets if the game has been disposed.
+        /// </summary>
+        public Boolean IsDisposed
+        {
+            get
+            {
+                return m_IsDisposed;
+            }
+        }
+
+        /// <summary>
+        /// Gets if the game is currently running.
+        /// </summary>
+        public Boolean IsRunning
+        {
+            get
+            {
+                return m_IsRunning;
+            }
+        }
+
+        /// <summary>
+        /// Gets the game window.
+        /// </summary>
+        public GameWindow Window
+        {
+            get
+            {
+                return m_GameWindow;
+            }
+        }
+
+        /// <summary>
+        /// Gets the graphics device.
+        /// </summary>
+        public GraphicsDevice GraphicsDevice
+        {
+            get
+            {
+                return m_GraphicsDevice;
+            }
+        }
+
+        /// <summary>
+        /// Gets the audio device.
+        /// </summary>
+        public AudioDevice AudioDevice
+        {
+            get
+            {
+                return m_AudioDevice;
+            }
+        }
+
+        /// <summary>
+        /// Gets the game screen manager.
+        /// </summary>
+        public GameScreenManager ScreenManager
+        {
+            get
+            {
+                return m_ScreenManager;
+            }
+        }
+
+        /// <summary>
+        /// Gets the game services.
+        /// </summary>
+        public GameServices Services
+        {
+            get
+            {
+                return m_GameServices;
+            }
+        }
+    }
+}

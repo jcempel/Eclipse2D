@@ -1,0 +1,37 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Eclipse2D.Graphics;
+
+namespace Eclipse2D.Content
+{
+    public class ContentManager
+    {
+        public IResource Load<IResource>(String FileName) where IResource : TestA
+        {
+
+        }
+
+        public void Test()
+        {
+            Load<TestA>("Test.png");
+        }
+    }
+
+    public interface IResource
+    {
+
+    }
+
+    public class TestA : IResource
+    {
+
+    }
+
+    public class TestB : IResource
+    {
+
+    }
+}

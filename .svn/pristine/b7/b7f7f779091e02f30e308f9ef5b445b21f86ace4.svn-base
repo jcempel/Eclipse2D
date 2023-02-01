@@ -1,0 +1,226 @@
+﻿using System;
+using System.Drawing;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using SharpDX;
+using SharpDX.Windows;
+
+namespace Eclipse2D
+{
+    /// <summary>
+    /// Represents the game window used by the game.
+    /// </summary>
+    public class GameWindow
+    {
+        /// <summary>
+        /// Represents the underlying render form.
+        /// </summary>
+        private RenderForm m_RenderForm;
+
+        /// <summary>
+        /// An event that fires when the game window is activated.
+        /// </summary>
+        public event EventHandler<EventArgs> OnActivated;
+
+        /// <summary>
+        /// And event that fires when the game window is de-activated.
+        /// </summary>
+        public event EventHandler<EventArgs> OnDeactivated;
+        
+        /// <summary>
+        /// An event that fires when the game window has resumed rendering.
+        /// </summary>
+        public event EventHandler<EventArgs> OnResumeRendering;
+
+        /// <summary>
+        /// An event that fires when the game window has paused rendering.
+        /// </summary>
+        public event EventHandler<EventArgs> OnPauseRendering;
+
+        /// <summary>
+        /// An event that fires when the system is resumed.
+        /// </summary>
+        public event EventHandler<EventArgs> OnSystemResume;
+
+        /// <summary>
+        /// An event that fires when the system is suspended.
+        /// </summary>
+        public event EventHandler<EventArgs> OnSystemSuspend;
+
+        /// <summary>
+        /// An event that fires when the mouse enters the game window.
+        /// </summary>
+        public event EventHandler<EventArgs> OnMouseEnter;
+
+        /// <summary>
+        /// An event that fires when the mouse leaves the game window.
+        /// </summary>
+        public event EventHandler<EventArgs> OnMouseLeave;
+
+        /// <summary>
+        /// Initializes a new game window with the specified title, width, and height.
+        /// </summary>
+        /// <param name="Title">The title of the game window.</param>
+        /// <param name="Width">The width of the client-area for the game window.</param>
+        /// <param name="Height">The height of the client-area for the game window.</param>
+        public GameWindow(String Title, Int32 Width, Int32 Height)
+        {
+            // Initialize a new render form.
+            m_RenderForm = new RenderForm(Title);
+
+            // Set the size of the client-area.
+            m_RenderForm.ClientSize = new Size(Width, Height);
+
+            // Hook important events.
+            m_RenderForm.AppActivated += GameWindow_AppActivated;
+            m_RenderForm.AppDeactivated += GameWindow_AppDeactivated;
+            m_RenderForm.ResumeRendering += GameWindow_ResumeRendering;
+            m_RenderForm.PauseRendering += GameWindow_PauseRendering;
+            m_RenderForm.SystemResume += GameWindow_SystemResume;
+            m_RenderForm.SystemSuspend += GameWindow_SystemSuspend;
+            m_RenderForm.MouseEnter += GameWindow_MouseEnter;
+            m_RenderForm.MouseLeave += GameWindow_MouseLeave;
+        }
+
+        /// <summary>
+        /// Sets/Gets the game window title.
+        /// </summary>
+        public String Title
+        {
+            set
+            {
+                m_RenderForm.Text = value;
+            }
+
+            get
+            {
+                return m_RenderForm.Text;
+            }
+        }
+
+        /// <summary>
+        /// Sets/Gets the game window client-area.
+        /// </summary>
+        public Size ClientSize
+        {
+            set
+            {
+                m_RenderForm.ClientSize = value;
+            }
+
+            get
+            {
+                return m_RenderForm.ClientSize;
+            }
+        }
+
+        /// <summary>
+        /// Sets/Gets whether the game window is windowed or full-screen.
+        /// </summary>
+        public Boolean IsFullscreen
+        {
+            set
+            {
+                m_RenderForm.IsFullscreen = value;
+            }
+
+            get
+            {
+                return m_RenderForm.IsFullscreen;
+            }
+        }
+
+        /// <summary>
+        /// Event: Executes when the game window is activated.
+        /// </summary>
+        /// <param name="Sender">The object that created the event.</param>
+        /// <param name="Args">The arguments passed by this event.</param>
+        private void GameWindow_AppActivated(Object Sender, EventArgs Args)
+        {
+            OnActivated?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Event: Executes when the game window is de-activated.
+        /// </summary>
+        /// <param name="Sender">The object that created the event.</param>
+        /// <param name="Args">The arguments passed by this event.</param>
+        private void GameWindow_AppDeactivated(Object Sender, EventArgs Args)
+        {
+            OnDeactivated?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Event: Executes when the game window has resumed rendering.
+        /// </summary>
+        /// <param name="Sender">The object that created the event.</param>
+        /// <param name="Args">The arguments passed by this event.</param>
+        private void GameWindow_ResumeRendering(Object Sender, EventArgs Args)
+        {
+            OnResumeRendering?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Event: Executes when the game window has paused rendering.
+        /// </summary>
+        /// <param name="Sender">The object that created the event.</param>
+        /// <param name="Args">The arguments passed by this event.</param>
+        private void GameWindow_PauseRendering(Object Sender, EventArgs Args)
+        {
+            OnPauseRendering?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Event: Executes when the system is resumed.
+        /// </summary>
+        /// <param name="Sender">The object that created the event.</param>
+        /// <param name="Args">The arguments passed by this event.</param>
+        private void GameWindow_SystemResume(Object Sender, EventArgs Args)
+        {
+            OnSystemResume?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Event: Executes when the system is suspended.
+        /// </summary>
+        /// <param name="Sender">The object that created the event.</param>
+        /// <param name="Args">The arguments passed by this event.</param>
+        private void GameWindow_SystemSuspend(Object Sender, EventArgs Args)
+        {
+            OnSystemSuspend?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Event: Executes when the mouse enters the game window.
+        /// </summary>
+        /// <param name="Sender">The object that created the event.</param>
+        /// <param name="Args">The arguments passed by this event.</param>
+        private void GameWindow_MouseEnter(Object Sender, EventArgs Args)
+        {
+            OnMouseEnter?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Event: Executes when the game window leaves the game window.
+        /// </summary>
+        /// <param name="Sender">The object that created the event.</param>
+        /// <param name="Args">The arguments passed by this event.</param>
+        private void GameWindow_MouseLeave(Object Sender, EventArgs Args)
+        {
+            OnMouseLeave?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Gets the underlying render form.
+        /// </summary>
+        internal RenderForm RenderForm
+        {
+            get
+            {
+                return m_RenderForm;
+            }
+        }
+    }
+}

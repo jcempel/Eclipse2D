@@ -1,0 +1,18 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Eclipse2D;
+
+namespace Eclipse2D.GameClient
+{
+    class EclipseGame : Game
+    {
+        public EclipseGame(String Title, Int32 Width, Int32 Height, Boolean EnableNetworking)
+            : base(Title, Width, Height, EnableNetworking)
+        {
+           
+        }
+    }
+}

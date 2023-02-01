@@ -1,0 +1,64 @@
+﻿using System;
+using System.Windows.Forms;
+using System.Drawing;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using SharpDX.Windows;
+
+namespace Eclipse2D.Input
+{
+    /// <summary>
+    /// Represents a mouse device.
+    /// </summary>
+    public static class Mouse
+    {
+        /// <summary>
+        /// Represents the game window this mouse is attached to.
+        /// </summary>
+        private static Control m_Window;
+
+        /// <summary>
+        /// Initializes the mouse.
+        /// </summary>
+        /// <param name="Window">The handle of the underlying render window.</param>
+        public static void Initialize(IntPtr Window)
+        {
+            m_Window = Control.FromHandle(Window);
+        }
+
+        /// <summary>
+        /// Gets the current state of the mouse.
+        /// </summary>
+        /// <returns></returns>
+        public static MouseState GetState()
+        {
+            // Check if the render window is attached.
+            if (m_Window == null)
+                throw new Exception("The mouse must be initialized before you can call GetState().");
+
+            // Initialize a new mouse state.
+            MouseState CurrentState = new MouseState();
+
+            // Gets the mouse position relative to the render window.
+            Point MousePosition = m_Window.PointToClient(Control.MousePosition);
+
+            // Gets the current state of the mouse buttons.
+            MouseButtons Buttons = Control.MouseButtons;
+
+            // Update the current mouse state to reflect the new mouse position.
+            CurrentState.X = MousePosition.X;
+            CurrentState.Y = MousePosition.Y;
+
+            // Update the current mouse state to reflect the new mouse button states.
+            CurrentState.LeftButton = (Buttons & MouseButtons.Left) == MouseButtons.Left ? MouseButtonState.Pressed : MouseButtonState.Released;
+            CurrentState.RightButton = (Buttons & MouseButtons.Right) == MouseButtons.Right ? MouseButtonState.Pressed : MouseButtonState.Released;
+            CurrentState.MiddleButton = (Buttons & MouseButtons.Middle) == MouseButtons.Middle ? MouseButtonState.Pressed : MouseButtonState.Released;
+            CurrentState.XButton1 = (Buttons & MouseButtons.XButton1) == MouseButtons.XButton1 ? MouseButtonState.Pressed : MouseButtonState.Released;
+            CurrentState.XButton2 = (Buttons & MouseButtons.XButton2) == MouseButtons.XButton2 ? MouseButtonState.Pressed : MouseButtonState.Released;
+
+            return CurrentState;
+        }
+    }
+}
